@@ -1,6 +1,6 @@
 import re
-import spacy
 from typing import List, Dict, Any, Optional, Tuple
+from server.app.core.config import settings
 
 # Comprehensive gazetteer of verified localities, crossings, and civic landmarks in Varanasi
 VARANASI_GAZETTEER: Dict[str, Dict[str, Any]] = {
@@ -35,11 +35,23 @@ class LocationExtractionService:
     """Named Entity Recognition & Gazetteer Resolution Service for civic grievance location extraction."""
 
     def __init__(self):
-        try:
-            self.nlp = spacy.load("en_core_web_sm")
-        except Exception:
-            self.nlp = None
-            print("[Warning] spaCy model en_core_web_sm not loaded in memory yet.")
+        self.nlp = None
+        self._nlp_loaded = False
+
+    def _get_nlp(self):
+        if not self._nlp_loaded:
+            self._nlp_loaded = True
+            if not getattr(settings, 'LOW_MEMORY_MODE', False):
+                try:
+                    import spacy
+                    self.nlp = spacy.load(settings.SPACY_MODEL_NAME)
+                    print(f"[Info] Loaded spaCy model '{settings.SPACY_MODEL_NAME}'")
+                except Exception as e:
+                    self.nlp = None
+                    print(f"[Info] spaCy model skipped or offline: {e}")
+            else:
+                self.nlp = None
+        return self.nlp
 
     def extract_locations(self, text: str) -> List[Dict[str, Any]]:
         """
@@ -79,9 +91,10 @@ class LocationExtractionService:
                 })
 
         # 2. spaCy Named Entity Recognition for novel/unmapped locations
-        if self.nlp is not None:
+        nlp_model = self._get_nlp()
+        if nlp_model is not None:
             try:
-                doc = self.nlp(text)
+                doc = nlp_model(text)
                 for ent in doc.ents:
                     if ent.label_ in ("GPE", "LOC", "FAC"):
                         ent_text = ent.text.strip()

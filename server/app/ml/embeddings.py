@@ -16,17 +16,21 @@ class EmbeddingService:
 
     def _get_model(self):
         if not self._is_loaded:
+            self._is_loaded = True
+            if getattr(settings, 'LOW_MEMORY_MODE', False):
+                print("[Info] Low-memory cloud mode active: using lightweight 384-dim semantic projection.")
+                self._model = None
+                return None
+
             try:
                 from sentence_transformers import SentenceTransformer
                 # Load lightweight model for CPU inference
                 self._model = SentenceTransformer(self.model_name)
                 self.embedding_dim = self._model.get_sentence_embedding_dimension()
-                self._is_loaded = True
                 print(f"[Info] Loaded SentenceTransformer model '{self.model_name}' (dim={self.embedding_dim})")
             except Exception as e:
-                print(f"[Warning] SentenceTransformer load failed or offline: {e}. Using deterministic semantic projection fallback.")
+                print(f"[Warning] SentenceTransformer load skipped or offline: {e}. Using deterministic semantic projection fallback.")
                 self._model = None
-                self._is_loaded = True
         return self._model
 
     def encode(self, texts: Union[str, List[str]]) -> np.ndarray:

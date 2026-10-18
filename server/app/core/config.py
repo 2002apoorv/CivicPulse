@@ -54,6 +54,7 @@ class Settings(BaseSettings):
     CLUSTER_EPS_METERS: float = 500.0  # 500 meters spatial distance
     CLUSTER_MIN_SAMPLES: int = 2
     CONFIDENCE_REVIEW_THRESHOLD: float = 0.35  # For 10 classes (random=0.10), predictions < 0.35 flagged for review
+    LOW_MEMORY_MODE: bool = os.getenv("LOW_MEMORY_MODE", "false").lower() in ("true", "1", "yes") or os.getenv("RENDER") is not None
 
     # Initial Admin Bootstrap
     BOOTSTRAP_ADMIN_EMAIL: str = "admin@civicpulse.local"
